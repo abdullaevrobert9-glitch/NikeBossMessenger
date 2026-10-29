@@ -8,15 +8,12 @@ import android.webkit.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import android.Manifest
-import android.content.pm.PackageManager
-import androidx.core.content.ContextCompat
 import android.widget.Toast
 
 class MainActivity : AppCompatActivity() {
     private lateinit var webView: WebView
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
 
-    // Лаунчер для выбора файлов
     private val fileChooserLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
             filePathCallback?.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result.resultCode, result.data))
@@ -26,13 +23,9 @@ class MainActivity : AppCompatActivity() {
         filePathCallback = null
     }
 
-    // Лаунчер для запроса разрешений
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
-        if (permissions[Manifest.permission.CAMERA] == true && permissions[Manifest.permission.RECORD_AUDIO] == true) {
-            // Разрешения получены, можно перезагрузить страницу
+        if (permissions[Manifest.permission.RECORD_AUDIO] == true) {
             webView.reload()
-        } else {
-            Toast.makeText(this, "Нужны разрешения для камеры и микрофона", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -40,7 +33,6 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Запрашиваем разрешения сразу при старте
         requestPermissionLauncher.launch(arrayOf(
             Manifest.permission.CAMERA,
             Manifest.permission.RECORD_AUDIO,
@@ -54,20 +46,36 @@ class MainActivity : AppCompatActivity() {
             allowFileAccess = true
             allowContentAccess = true
             mediaPlaybackRequiresUserGesture = false
-            // Важно для работы камеры/микрофона из WebView
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-                mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-            }
+            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            // Убираем следы браузера
+            setSupportZoom(false)
+            builtInZoomControls = false
+            displayZoomControls = false
+            // Отключаем выделение текста (чтобы не было меню "Копировать/Открыть в браузере")
+            // Но так как у нас есть своя функция копирования через JS, это не помешает
         }
+
+        // Отключаем длинное нажатие (контекстное меню)
+        webView.isLongClickable = false
+        webView.setOnLongClickListener { true }
 
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
+                // Если ссылка ведёт не на наш домен, открываем в браузере
+                if (url != null && !url.contains("nikeboss-messenger.duckdns.org")) {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                    startActivity(intent)
+                    return true
+                }
                 return false
             }
         }
 
         webView.webChromeClient = object : WebChromeClient() {
-            // Обработка кнопки "Скрепка" (выбор файла)
+            override fun onPermissionRequest(request: PermissionRequest?) {
+                request?.grant(request.resources)
+            }
+
             override fun onShowFileChooser(
                 webView: WebView?,
                 filePathCallback: ValueCallback<Array<Uri>>?,
@@ -75,7 +83,6 @@ class MainActivity : AppCompatActivity() {
             ): Boolean {
                 this@MainActivity.filePathCallback?.onReceiveValue(null)
                 this@MainActivity.filePathCallback = filePathCallback
-
                 val intent = fileChooserParams?.createIntent()
                 if (intent != null) {
                     try {
@@ -89,11 +96,6 @@ class MainActivity : AppCompatActivity() {
                     return false
                 }
                 return true
-            }
-
-            // Обработка запросов на камеру/микрофон (если сайт запрашивает)
-            override fun onPermissionRequest(request: PermissionRequest?) {
-                request?.grant(request.resources)
             }
         }
 

@@ -14,13 +14,14 @@ android {
     }
 
     signingConfigs {
-    release {
-        storeFile file("nikeboss-release.jks")
-        storePassword "123456"  // <--- ЗАМЕНИТЬ НА ЭТО
-        keyAlias "nikeboss"
-        keyPassword "123456"    // <--- ЗАМЕНИТЬ НА ЭТО
+        release {
+            storeFile file("nikeboss-release.jks")
+            storePassword System.getenv("KEYSTORE_PASSWORD")
+            keyAlias System.getenv("KEY_ALIAS")
+            keyPassword System.getenv("KEYSTORE_PASSWORD")
+        }
     }
-}
+
     buildTypes {
         release {
             signingConfig signingConfigs.release
@@ -36,9 +37,20 @@ android {
     kotlinOptions {
         jvmTarget = '17'
     }
+    buildFeatures {
+        viewBinding true
+    }
 }
 
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'androidx.core:core-ktx:1.10.1'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'com.google.android.material:material:1.9.0'
+    
+    // Сетевые запросы
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.11.0'
+    implementation 'com.squareup.okhttp3:logging-interceptor:4.11.0'
 }
