@@ -16,9 +16,10 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
         
-    # 1. Генерируем новый ключ прямо на сервере GitHub
+    # 1. Удаляем старый пустой файл и генерируем новый ключ
     - name: Generate Keystore
       run: |
+        rm -f app/nikeboss-release.jks
         keytool -genkey -v -keystore app/nikeboss-release.jks \
         -keyalg RSA -keysize 2048 -validity 10000 \
         -alias nikeboss \
