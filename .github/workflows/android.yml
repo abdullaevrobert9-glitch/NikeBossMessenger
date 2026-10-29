@@ -16,17 +16,24 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
         
-    - name: Decode Keystore
-      run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/nikeboss-release.jks
-      
+    # 1. Генерируем новый ключ прямо на сервере GitHub
+    - name: Generate Keystore
+      run: |
+        keytool -genkey -v -keystore app/nikeboss-release.jks \
+        -keyalg RSA -keysize 2048 -validity 10000 \
+        -alias nikeboss \
+        -storepass 123456 -keypass 123456 \
+        -dname "CN=NikeBoss, OU=NikeBoss, O=NikeBoss, L=Moscow, ST=Moscow, C=RU"
+        
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
       
+    # 2. Собираем релиз с этим ключом
     - name: Build Release APK
       run: ./gradlew assembleRelease
       env:
-        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        KEYSTORE_PASSWORD: "123456"
+        KEY_ALIAS: "nikeboss"
         
     - name: Upload Release APK
       uses: actions/upload-artifact@v4
