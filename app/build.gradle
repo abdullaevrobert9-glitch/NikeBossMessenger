@@ -13,6 +13,24 @@ android {
         versionName "1.0"
     }
 
+    signingConfigs {
+        release {
+            // Если собираем локально, берем ключ из папки проекта
+            storeFile file("../nikeboss-release.jks")
+            storePassword System.getenv("KEYSTORE_PASSWORD") ?: "твой_пароль_от_ключа"
+            keyAlias "nikeboss"
+            keyPassword System.getenv("KEY_PASSWORD") ?: "твой_пароль_от_ключа"
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled false // Пока не усложняем, чтобы не сломать WebView
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
@@ -25,6 +43,5 @@ android {
 
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
-    // Понижаем версию core-ktx до 1.10.1 (она работает с SDK 33)
     implementation 'androidx.core:core-ktx:1.10.1'
 }
