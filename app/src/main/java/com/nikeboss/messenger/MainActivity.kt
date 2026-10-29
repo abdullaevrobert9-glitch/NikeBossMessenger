@@ -1,18 +1,22 @@
 package com.nikeboss.messenger
 
+import android.annotation.SuppressLint
 import android.os.Bundle
-import android.widget.TextView
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
+    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val textView = TextView(this).apply {
-            text = "NikeBoss Messenger\n\nГотов к работе!"
-            textSize = 24f
-            setPadding(50, 50, 50, 50)
-            setTextColor(0xFFFF1F3D.toInt())
-        }
-        setContentView(textView)
+        
+        val webView = WebView(this)
+        webView.settings.javaScriptEnabled = true
+        webView.settings.domStorageEnabled = true
+        webView.webViewClient = WebViewClient()
+        
+        webView.loadUrl("https://nikeboss-messenger.duckdns.org")
+        setContentView(webView)
     }
 }
