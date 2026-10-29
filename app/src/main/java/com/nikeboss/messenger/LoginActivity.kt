@@ -2,6 +2,7 @@ package com.nikeboss.messenger
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -27,34 +28,40 @@ class LoginActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityLoginBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        try {
+            binding = ActivityLoginBinding.inflate(layoutInflater)
+            setContentView(binding.root)
 
-        // Если уже вошли (есть токен), сразу на главный экран
-        val prefs = getSharedPreferences("NikeBossPrefs", MODE_PRIVATE)
-        if (prefs.getString("token", null) != null) {
-            startActivity(Intent(this, MainActivity::class.java))
+            val prefs = getSharedPreferences("NikeBossPrefs", MODE_PRIVATE)
+            if (prefs.getString("token", null) != null) {
+                startActivity(Intent(this, MainActivity::class.java))
+                finish()
+                return
+            }
+
+            binding.loginButton.setOnClickListener {
+                val username = binding.usernameInput.text.toString().trim()
+                val password = binding.passwordInput.text.toString()
+                if (username.isNotEmpty() && password.isNotEmpty()) {
+                    performAuth("/api/login", username, password, null)
+                } else {
+                    Toast.makeText(this, "Заполни все поля", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            binding.registerButton.setOnClickListener {
+                val username = binding.usernameInput.text.toString().trim()
+                val password = binding.passwordInput.text.toString()
+                if (username.isNotEmpty() && password.isNotEmpty()) {
+                    performAuth("/api/register", username, password, username)
+                } else {
+                    Toast.makeText(this, "Заполни все поля", Toast.LENGTH_SHORT).show()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("NikeBossCrash", "Ошибка в onCreate: ${e.message}", e)
+            Toast.makeText(this, "Ошибка запуска: ${e.message}", Toast.LENGTH_LONG).show()
             finish()
-        }
-
-        binding.loginButton.setOnClickListener {
-            val username = binding.usernameInput.text.toString().trim()
-            val password = binding.passwordInput.text.toString()
-            if (username.isNotEmpty() && password.isNotEmpty()) {
-                performAuth("/api/login", username, password, null)
-            } else {
-                Toast.makeText(this, "Заполни все поля", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        binding.registerButton.setOnClickListener {
-            val username = binding.usernameInput.text.toString().trim()
-            val password = binding.passwordInput.text.toString()
-            if (username.isNotEmpty() && password.isNotEmpty()) {
-                performAuth("/api/register", username, password, username)
-            } else {
-                Toast.makeText(this, "Заполни все поля", Toast.LENGTH_SHORT).show()
-            }
         }
     }
 
@@ -67,28 +74,28 @@ class LoginActivity : AppCompatActivity() {
         call.enqueue(object : Callback<AuthResponse> {
             override fun onResponse(call: Call<AuthResponse>, response: Response<AuthResponse>) {
                 binding.progressBar.visibility = View.GONE
-                if (response.isSuccessful && response.body()?.ok == true) {
-                    val token = response.body()?.token
-                    val user = response.body()?.user
-                    
-                    // Сохраняем токен
-                    val prefs = getSharedPreferences("NikeBossPrefs", MODE_PRIVATE)
-                    prefs.edit().putString("token", token).apply()
-                    
-                    Toast.makeText(this@LoginActivity, "Успешно!", Toast.LENGTH_SHORT).show()
-                    
-                    // Переходим на главный экран (WebView)
-                    startActivity(Intent(this@LoginActivity, MainActivity::class.java))
-                    finish()
-                } else {
-                    val error = response.body()?.error ?: "Ошибка сервера"
-                    Toast.makeText(this@LoginActivity, error, Toast.LENGTH_LONG).show()
+                try {
+                    if (response.isSuccessful && response.body()?.ok == true) {
+                        val token = response.body()?.token
+                        val prefs = getSharedPreferences("NikeBossPrefs", MODE_PRIVATE)
+                        prefs.edit().putString("token", token).apply()
+                        
+                        Toast.makeText(this@LoginActivity, "Успешно!", Toast.LENGTH_SHORT).show()
+                        startActivity(Intent(this@LoginActivity, MainActivity::class.java))
+                        finish()
+                    } else {
+                        val error = response.body()?.error ?: "Ошибка сервера (${response.code()})"
+                        Toast.makeText(this@LoginActivity, error, Toast.LENGTH_LONG).show()
+                    }
+                } catch (e: Exception) {
+                    Toast.makeText(this@LoginActivity, "Ошибка обработки ответа", Toast.LENGTH_LONG).show()
                 }
             }
 
             override fun onFailure(call: Call<AuthResponse>, t: Throwable) {
                 binding.progressBar.visibility = View.GONE
                 Toast.makeText(this@LoginActivity, "Ошибка сети: ${t.message}", Toast.LENGTH_LONG).show()
+                Log.e("NikeBossNetwork", "Ошибка сети", t)
             }
         })
     }
