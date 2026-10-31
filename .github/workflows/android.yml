@@ -16,28 +16,14 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
         
-    # 1. Удаляем старый пустой файл и генерируем новый ключ
-    - name: Generate Keystore
-      run: |
-        rm -f app/nikeboss-release.jks
-        keytool -genkey -v -keystore app/nikeboss-release.jks \
-        -keyalg RSA -keysize 2048 -validity 10000 \
-        -alias nikeboss \
-        -storepass 123456 -keypass 123456 \
-        -dname "CN=NikeBoss, OU=NikeBoss, O=NikeBoss, L=Moscow, ST=Moscow, C=RU"
-        
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
       
-    # 2. Собираем релиз с этим ключом
-    - name: Build Release APK
-      run: ./gradlew assembleRelease
-      env:
-        KEYSTORE_PASSWORD: "123456"
-        KEY_ALIAS: "nikeboss"
-        
-    - name: Upload Release APK
+    - name: Build Debug APK
+      run: ./gradlew assembleDebug
+      
+    - name: Upload Debug APK
       uses: actions/upload-artifact@v4
       with:
-        name: NikeBoss-Release-APK
-        path: app/build/outputs/apk/release/app-release.apk
+        name: NikeBoss-Debug-APK
+        path: app/build/outputs/apk/debug/app-debug.apk
